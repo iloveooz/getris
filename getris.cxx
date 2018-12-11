@@ -26,23 +26,41 @@
 		
 	};
 	
+	bool check() {
+		for (int i = 0; i < 4; i++ ) 
+			if (a[i].x < 0 || a[i].x >= N || a[i].y >= M) return 0;
+			else if (field[a[i].y] [a[i].x]) return 0;
+		return 1;
+	}
+	
 	int main() {
+		
+		srand(time(NULL));
+		
 		sf::RenderWindow window(sf::VideoMode(320, 480), "Getris!");
 		
-		sf::Texture t;
+		sf::Texture t, bt;
 		t.loadFromFile("images/tiles.png");
+		bt.loadFromFile("images/background.png");
 		
-		sf::Sprite s(t);
+		sf::Sprite s(t), bb(bt);
 		s.setTextureRect(sf::IntRect(0, 0, 18, 18));
 		
 		int dx = 0;
 		bool rotate = 0;
 		int colorNum = 1;
-		
+				
 		float timer = 0; 
 		float delay = 0.3;
 		
+		sf::Clock clock;
+		
 		while (window.isOpen()) {
+			
+			float time = clock.getElapsedTime().asSeconds();
+			clock.restart();
+			timer += time;
+			
 			sf::Event event;
 			
 			while (window.pollEvent(event)) {
@@ -55,10 +73,16 @@
 				}
 			}
 			
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) delay = 0.05;
+			
 			// MOVE
 			
-			for (int i = 0; i < 4; i++) 
+			for (int i = 0; i < 4; i++) {
+				b[i] = a[i];
 				a[i].x += dx;
+			}
+			
+			if (!check()) for (int i = 0; i < 4; i++) a[i] = b[i];
 			
 			// ROTATE
 			if (rotate) {
@@ -70,26 +94,66 @@
 					a[i].x = p.x - x; 
 					a[i].y = p.y + y;
 				}
-				
+				if (!check()) for (int i = 0; i < 4; i++) a[i] = b[i];
 			}
 			
-			int n = 3;
-			if (a[0].x == 0)
+			// TICK-TACK
+			if (timer > delay) {
 				for (int i = 0; i < 4; i++) {
-					a[i].x = figures[n][i] % 2;
-					a[i].y = figures[n][i] / 2;
-					//std::cout << "iter: " << i << ", a[" << i << "].x = " << a[i].x  << ", a[" << i << "].y = " << a[i].y << '\n';
+					b[i] = a[i];
+					a[i].y += 1;
 				}
+				
+				if (!check()) {
+					for (int i = 0; i < 4; i++) 
+						field[b[i].y] [b[i].x] = colorNum;
+					colorNum = 1 + rand() % 7;
+					int n = rand() % 7;
 			
+					for (int i = 0; i < 4; i++) {
+						a[i].x = figures[n][i] % 2;
+						a[i].y = figures[n][i] / 2;
+					}
+				
+				
+				}
+				timer = 0;
+			}
+			
+			// check lines
+			
+			int k = M - 1;
+			for (int i = M - 1; i > 0; i--) {
+				int count = 0;
+				for (int j = 0; j < N; j++) {
+					if (field[i][j]) count++;
+					field[k][j] = field[i][j];
+				}
+				if (count < N) k--;
+			}
+
 			dx = 0;
 			rotate = 0;
+			delay = 0.3;
 			
+			// DRAW
 			window.clear(sf::Color::White);
+			window.draw(bb);
+			
+			for (int i = 0; i < M; i++)
+				for (int j = 0; j < N; j++) {
+					if (field[i][j] == 0) continue;
+					s.setTextureRect(sf::IntRect(field[i][j] * 18, 0, 18, 18));
+					s.setPosition(j * 18, i  * 18);	
+					window.draw(s);
+				}
 			
 			for (int i = 0; i < 4; i++) {
+				s.setTextureRect(sf::IntRect(colorNum * 18, 0, 18, 18));
 				s.setPosition(a[i].x * 18, a[i].y * 18);
 				//std::cout << "setPos: " << i << ", a[" << i << "].x * 18 = " << (a[i].x * 18)  << ", a[" << i << "].y * 18 = " << (a[i].y * 18) << '\n';
 				window.draw(s);
+				
 			}
 			
 			window.display();
